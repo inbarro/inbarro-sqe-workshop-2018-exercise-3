@@ -57,6 +57,7 @@ function switchCaseContinue1(parsedCode) {
     }
 }
 
+
 function switchCaseContinue2 (parsedCode) {
     switch (parsedCode.type) {
     case ('BinaryExpression'):
