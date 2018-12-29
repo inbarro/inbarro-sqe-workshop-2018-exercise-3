@@ -1,11 +1,14 @@
 import * as esprima from 'esprima';
 
-
 let funcArgs;
 let variablesValues;
 let allNodes;
-let currentBox;
-//let isNotTrue;
+let currentNode;
+let isNotTrue;
+let ifsInformation;
+let currentif;
+let currIfAttachment;
+let IfAttachments;
 
 
 const parseCode = (codeToParse) => {
@@ -16,11 +19,14 @@ export {parseCode};
 function parsedCodeToflowChartWrap(args,parsedCode){
     variablesValues = new Map();
     allNodes = [];
+    ifsInformation = [];
+    IfAttachments=[];
+    currentif=0;
+    isNotTrue=false;
+    currentNode=0;
+    currIfAttachment=0;
     funcArgs = args.split('|');
-    currentBox=0;
-    allNodes[0]={};
-    allNodes[0].name=0;
-    allNodes[currentBox].value='';
+
     return parsedCodeToflowChart(parsedCode);
 }
 export {parsedCodeToflowChartWrap};
@@ -56,7 +62,6 @@ function switchCaseContinue1(parsedCode) {
         return switchCaseContinue2(parsedCode);
     }
 }
-
 
 function switchCaseContinue2 (parsedCode) {
     switch (parsedCode.type) {
@@ -105,8 +110,14 @@ function parseFunctionVariableDeclaration (parsedCode){
     }
 }
 
-function parseBlockStatement(parsedCode) {
+function parseBlockStatement(parsedCode){
+    currentNode++;
     if (typeof parsedCode !== 'undefined' && parsedCode.length > 0) {
+        allNodes[currentNode]={};
+        allNodes[currentNode].id=currentNode;
+        allNodes[currentNode].value='';
+        allNodes[currentNode].color='green';
+        allNodes[currentNode].pointers = '';
         let i;
         for (i = 0; i < parsedCode.length; i++) {
             parsedCodeToflowChart(parsedCode[i]);
@@ -118,15 +129,15 @@ function parseVariableDeclaration(parsedCode){
     let i;
     for (i = 0; i < parsedCode.length; i++) {
         let name = parsedCode[i].id.name;
-        let row = 'let ' + name+ '= ';
+        let row = name+ '= ';
         if (parsedCode[i].init != null) {
             row += parsedCodeToflowChart(parsedCode[i].init) + '; ';
         } else {
             row += '; ';
         }
-        allNodes[currentBox].value += row;
+        allNodes[currentNode].value += row;
         let stringToEval = calcStringToNumbersString(parsedCode[i].init);
-        variablesValues.set(parsedCode[i].id.name, eval(stringToEval));
+        variablesValues.set(name, eval(stringToEval));
     }
 }
 
@@ -135,9 +146,14 @@ function parseExpressionStatement(parsedCode){
 }
 
 function parseAssignmentExpression(parsedCode){
-    //if (!isNotTrue) {
-    variablesValues.set(parsedCode.left.name, eval(calcStringToNumbersString((parsedCode.right))));
-    //}
+    let row='';
+    let left = parsedCode.left.name;
+    let right = parsedCodeToflowChart(parsedCode.right);
+    row+=left + ' = ' + right + ';';
+    allNodes[currentNode].value += row;
+    if (!isNotTrue) {
+        variablesValues.set(parsedCode.left.name, eval(calcStringToNumbersString((parsedCode.right))));
+    }
 }
 
 function parseIdentifier(parsedCode){
@@ -170,45 +186,117 @@ function parseBinaryExpression(parsedCode){
 }
 
 function parseIfStatement(parsedCode,isElseIf) {
+    let conditionRealResult;
+    allNodes[currentNode].pointers += (currentNode + 1).toString() + ', ';
+    currentNode++;
+    allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green'; allNodes[currentNode].pointers = '';
+    let left = parsedCodeToflowChart(parsedCode.test.left); let right = parsedCodeToflowChart(parsedCode.test.right); let op = parsedCode.test.operator;
+    allNodes[currentNode].value +=  left + ' ' + op + ' ' + right;
+    let condition = calcStringToNumbersString(parsedCode.test);     conditionRealResult = eval(condition);
+    currentif++;
+    ifsInformation[currentif] = {};
+    ifsInformation[currentif].id = currentif;
+    ifsInformation[currentif].lock = true;
+    // ifsInformation[currentif].isConditionTrue=true;
+    // if (!conditionRealResult){
+    //     ifsInformation[currentif].isConditionTrue = false;
+    // }
+    if (!isElseIf) {
+        currIfAttachment++;
+        IfAttachments[currIfAttachment].id = currIfAttachment;
+        IfAttachments[currIfAttachment].nodeID = currentNode;
+        IfAttachments[currIfAttachment].conditionState = conditionRealResult;
+
+    }
+    if (insideFalseIf) {
+        allNodes[currentNode].color = 'red';
+        let tempDictionaryVariablesValues = new Map(variablesValues);
+        parsedCodeToflowChart(parsedCode.consequent);
+        variablesValues = tempDictionaryVariablesValues;
+    }
+    else {
+        if (!isElseIf) {
+            if (conditionRealResult) {
+                parsedCodeToflowChart(parsedCode.consequent);
+            } else {
+                let tempDictionaryVariablesValues = new Map(variablesValues);
+                parsedCodeToflowChart(parsedCode.consequent);
+                variablesValues = tempDictionaryVariablesValues;
+            }
+
+        } else {
+            if (IfAttachments[currIfAttachment]) {
+            }
+
+        }
+    }
+
+    // else{
+    //     parsedCodeToflowChart(parsedCode.consequent);
+    // }
+    //
+    // allNodes[currentNode].ifPointer =currIfAttachment;
+    // if (isElseIf){
+    //     if (currIfAttachment[currIfAttachment].id = currIfAttachment
+    //     if(!currIfAttachment[currIfAttachment].conditionState && conditionRealResult) {
+    //
+    //         currIfAttachment[currIfAttachment].conditionState = currIfAttachment[currIfAttachment].conditionState || conditionRealResult;
+    //     }
+    //
+    // }
 
 
-//     let ifLine='';   let conditionRealResult;   let left =parsedCodeToSymbolicSubstitution(parsedCode.test.left);     let right = parsedCodeToSymbolicSubstitution(parsedCode.test.right);
-//     let op = parsedCode.test.operator;
-//     if (isElseIf === 0) {ifLine+='if';}
-//     else {ifLine+='else if';}
-//     ifLine+=' (' + left+ ' '+ op + ' ' + right + ') {';
-//     let condition = calcStringToNumbersString(parsedCode.test);
-//     conditionRealResult = eval(condition);
-//     if (conditionRealResult) {newFunction.push({str: ifLine, color: 'green'});}
-//     else{  /* isNotTrue = true;*/   newFunction.push({str: ifLine, color: 'red'});}
-//     let tempArgumentDitionary = new Map(argumentsDictionary);  //inside if block we should save the primerly position and change it back at th end of the if block
-//     let tempAllValuesDictionary = new Map(allValus);
-//     let tempVariablesDictionary = new Map(variablesDictionary);
-//     parsedCodeToSymbolicSubstitution(parsedCode.consequent);
-//     argumentsDictionary = tempArgumentDitionary;     allValus = tempAllValuesDictionary;     variablesDictionary = tempVariablesDictionary;
-//     /* isNotTrue = false;*/     newFunction.push({str: '}', color: ''});
-//     if ( parsedCode.alternate !== null) {
-//         if (parsedCode.alternate.type === 'IfStatement') { parseIfStatementPart2(parsedCode.alternate, 1);}
-//         else { parseElseStatementPart2(parsedCode.alternate,!conditionRealResult);}}
+    //parseIfStatementContinueAlternative(parsedCode);
+    if (parsedCode.alternate !== null) {
+        if (parsedCode.alternate.type === 'IfStatement') {
+            parseIfStatement(parsedCode.alternate, 1 );
+        } else {
+            parseElseStatement(parsedCode.alternate, !conditionRealResult);
+        }
+    }
+    if (!isElseIf) {
+        currIfAttachment--;
+
+    }
+    ifsInformation[currentif].lock = true;
 
 }
-//
-// function parseElseStatementPart2(parsedCode,conditionRealResult) {
-//     let ifLine='';
-//     let color;
-//     if (conditionRealResult){
-//         color = 'green';
-//     }
-//     else{
-//         color='red';
-//         //isNotTrue = true;
-//     }
-//     ifLine+='else{';
-//     newFunction.push({str:ifLine, color:color});
-//     parsedCodeToSymbolicSubstitution(parsedCode);
-//     //isNotTrue = false;
-//     newFunction.push({str: '}', color: ''});
-// }
+
+function insideFalseIf(){
+    for (let i=currentif-1; i>0; i--){
+        if (ifsInformation[i].lock && !ifsInformation[i].isConditionTrue){
+            return true;
+        }
+    }
+    return false;
+}
+
+function parseIfStatementContinueAlternative (parsedCode,conditionRealResult){
+    if (parsedCode.alternate !== null) {
+        if (parsedCode.alternate.type === 'IfStatement') {
+            parseIfStatement(parsedCode.alternate, 1 );
+        } else {
+            parseElseStatement(parsedCode.alternate, !conditionRealResult);
+        }
+    }
+}
+
+function parseElseStatement(parsedCode,conditionRealResult) {
+    let color;
+    if (conditionRealResult  && !isNotTrue){color='green';}
+    else{ color='red'; }
+    currentNode++;
+    allNodes[currentNode] = {};
+    allNodes[currentNode].id = currentNode;
+    allNodes[currentNode].value = '';
+    allNodes[currentNode].color = color;
+    
+    allNodes[currentNode-2].pointers = (currentNode).toString() + ', ';
+    allNodes[currentNode].ifPointer =currIfAttachment;
+    //isNotTrue = true;
+    parsedCodeToflowChart(parsedCode);
+    //isNotTrue = false;
+}
 
 function calcStringToNumbersString(condition) {
     if (condition.type == 'BinaryExpression') {
@@ -240,6 +328,7 @@ function calcBinaryToVal(condition) {
 function isNumber(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
 }
+
 
 //
 //
