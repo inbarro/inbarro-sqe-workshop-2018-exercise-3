@@ -4,12 +4,9 @@ let funcArgs;
 let variablesValues;
 let allNodes;
 let currentNode;
-let isNotTrue;
 let ifsInformation;
 let nextIf;
-let currIf;
-
-let currIfAttachment;
+let nextIfAttachment;
 let IfAttachments;
 
 
@@ -24,10 +21,8 @@ function parsedCodeToflowChartWrap(args,parsedCode){
     ifsInformation = [];
     IfAttachments=[];
     nextIf=0;
-    currIf=0;
-    isNotTrue=false;
     currentNode=0;
-    currIfAttachment=0;
+    nextIfAttachment=0;
     funcArgs = args.split('|');
 
     return parsedCodeToflowChart(parsedCode);
@@ -39,6 +34,7 @@ function parsedCodeToflowChart(parsedCode){
     case ('Program'):
         parseProgram(parsedCode);
         console.log(allNodes);
+        console.log(IfAttachments);
         return allNodes;
     case ('FunctionDeclaration'):
         parseFunctionDeclaration(parsedCode);
@@ -92,8 +88,8 @@ function switchCaseContinue3 (parsedCode) {
     case ('UnaryExpression'):
         return parseUnaryExpression(parsedCode);
     case ('ReturnStatement'):
-        // parseReturnStatement(parsedCode);
-        // break;
+        parseReturnStatement(parsedCode);
+        break;
     }
 }
 
@@ -161,7 +157,7 @@ function parseAssignmentExpression(parsedCode){
     let right = parsedCodeToflowChart(parsedCode.right);
     row+=left + ' = ' + right + ';';
     allNodes[currentNode].value += row;
-    if (!isNotTrue) {
+    if (!insideFalseIf()) {
         variablesValues.set(parsedCode.left.name, eval(calcStringToNumbersString((parsedCode.right))));
     }
 }
@@ -200,96 +196,88 @@ function parseIfStatement(parsedCode,isElseIf) {
     if(!isElseIf)
         allNodes[currentNode].pointers += (currentNode + 1).toString() + ', ';
     else
-        allNodes[currentNode].pointers += (currentNode + 1).toString() + ', ';
-
+        allNodes[IfAttachments[nextIfAttachment].nodeID].pointers += (currentNode + 1).toString() + ', ';
     currentNode++;
     allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green'; allNodes[currentNode].pointers = '';
     let left = parsedCodeToflowChart(parsedCode.test.left); let right = parsedCodeToflowChart(parsedCode.test.right); let op = parsedCode.test.operator;
     allNodes[currentNode].value +=  left + ' ' + op + ' ' + right;
     let condition = calcStringToNumbersString(parsedCode.test);     conditionRealResult = eval(condition);
     nextIf++;
-    currIf++;
     ifsInformation[nextIf] = {};
     ifsInformation[nextIf].id = nextIf;
+    ifsInformation[nextIf].nodeID = currentNode;
     ifsInformation[nextIf].lock = true;
-    ifsInformation[nextIf].isConditionTrue=true;
-    if (!conditionRealResult){
-        ifsInformation[nextIf].isConditionTrue = false;
-    }
+    ifsInformation[nextIf].isConditionTrue = conditionRealResult;
     if (!isElseIf) {
-        currIfAttachment++;
-        IfAttachments[currIfAttachment]={};
-        IfAttachments[currIfAttachment].id = currIfAttachment;
-        IfAttachments[currIfAttachment].nodeID = currentNode;
-        IfAttachments[currIfAttachment].conditionState = false;
-
+        nextIfAttachment++;
+        IfAttachments[nextIfAttachment]={};
+        IfAttachments[nextIfAttachment].id = nextIfAttachment;
+        IfAttachments[nextIfAttachment].nodeID = currentNode;
+        IfAttachments[nextIfAttachment].conditionState = false;
+        IfAttachments[nextIfAttachment].lastIfNode=currentNode;
+    }else{
+        IfAttachments[nextIfAttachment].lastIfNode=currentNode;
     }
+    let currIfAttachment;
     if (insideFalseIf()) {
         allNodes[currentNode].color = 'red';
         let tempDictionaryVariablesValues = new Map(variablesValues);
-        //isNotTrue=true;
+        currIfAttachment  = nextIfAttachment;
         parsedCodeToflowChart(parsedCode.consequent);
-        //isNotTrue=false;
+        allNodes[currentNode].IfAttachmentPointer = (currIfAttachment).toString() + ', ';
         variablesValues = tempDictionaryVariablesValues;
     }
     else {
-        if (!isElseIf) {
+        if (!isElseIf){
             if (conditionRealResult) {
-                IfAttachments[currIfAttachment].conditionState = true;
+                IfAttachments[nextIfAttachment].conditionState = true;
                 parsedCodeToflowChart(parsedCode.consequent);
             } else {
-                allNodes[currentNode].color = 'red';
                 let tempDictionaryVariablesValues = new Map(variablesValues);
-                //isNotTrue=true;
+                currIfAttachment  = nextIfAttachment;
                 parsedCodeToflowChart(parsedCode.consequent);
-                //isNotTrue=false;
+                allNodes[currentNode].IfAttachmentPointer = (currIfAttachment).toString() + ', ';
                 variablesValues = tempDictionaryVariablesValues;
             }
         } else {
-            if (IfAttachments[currIfAttachment].conditionState) {
+            if (IfAttachments[nextIfAttachment].conditionState){
                 allNodes[currentNode].color = 'red';
                 let tempDictionaryVariablesValues = new Map(variablesValues);
-                isNotTrue=true;
+                currIfAttachment  = nextIfAttachment;
                 parsedCodeToflowChart(parsedCode.consequent);
-                isNotTrue=false;
+                allNodes[currentNode].IfAttachmentPointer = (currIfAttachment).toString() + ', ';
                 variablesValues = tempDictionaryVariablesValues;
             }
             else{
                 if (conditionRealResult) {
-                    IfAttachments[currIfAttachment].conditionState = true;
+                    IfAttachments[nextIfAttachment].conditionState = true;
+                    currIfAttachment  = nextIfAttachment;
                     parsedCodeToflowChart(parsedCode.consequent);
-                }
+                    allNodes[currentNode].IfAttachmentPointer = (currIfAttachment).toString() + ', ';                }
                 else{
-                    allNodes[currentNode].color = 'red';
                     let tempDictionaryVariablesValues = new Map(variablesValues);
-                    isNotTrue=true;
+                    currIfAttachment  = nextIfAttachment;
                     parsedCodeToflowChart(parsedCode.consequent);
-                    isNotTrue=false;
+                    allNodes[currentNode].IfAttachmentPointer = (currIfAttachment).toString() + ', ';
                     variablesValues = tempDictionaryVariablesValues;
                 }
             }
         }
     }
+    ifsInformation[nextIf].lock = false;
     if (parsedCode.alternate !== null) {
         if (parsedCode.alternate.type === 'IfStatement') {
             parseIfStatement(parsedCode.alternate, 1 );
         } else {
-            parseElseStatement(parsedCode.alternate, !conditionRealResult,currentNode,currIfAttachment);
+            parseElseStatement(parsedCode.alternate, !conditionRealResult,currentNode,nextIfAttachment);
         }
     }
-    if (!isElseIf) {
-        currIfAttachment--;
-
-    }
-    ifsInformation[nextIf].lock = true;
-    currIf--;
-
-
+    IfAttachments[currIfAttachment].nextRegularNode = currentNode+1;
 }
 
 function insideFalseIf(){
-    for (let i=nextIf-1; i>0; i--){
-        if (ifsInformation[i].lock && !ifsInformation[i].isConditionTrue){
+    for (let i=nextIf; i>0; i--){
+        if (ifsInformation[i].lock && !ifsInformation[i].isConditionTrue &&  ifsInformation[nextIf].nodeID != currentNode){
             return true;
         }
     }
@@ -307,25 +295,52 @@ function parseIfStatementContinueAlternative (parsedCode,conditionRealResult){
 }
 
 function parseElseStatement(parsedCode,conditionRealResult,ifNodeNumber,currIfAttachment) {
-    allNodes[ifNodeNumber].pointers += (currentNode+1).toString() + ', ';
+    allNodes[IfAttachments[currIfAttachment].lastIfNode].pointers += (currentNode+1).toString() + ', ';
     currentNode++;
     allNodes[currentNode] = {};
     allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].pointers = ''; allNodes[currentNode].color = 'green';
     let isInside = insideFalseIf();
-    if (isInside || IfAttachments[currIfAttachment].conditionState) {
+    if (isInside || IfAttachments[nextIfAttachment].conditionState) {
         allNodes[currentNode].color = 'red';
         let tempDictionaryVariablesValues = new Map(variablesValues);
-        isNotTrue=true;
         let i;
-        for (i = 0; i < parsedCode.length; i++) {
-            parsedCodeToflowChart(parsedCode.body[i]);}
-        isNotTrue=false;
+        for (i = 0; i < parsedCode.body.length; i++) {
+            parsedCodeToflowChart(parsedCode.body[i]);
+            allNodes[currentNode].IfAttachmentPointer = (currIfAttachment).toString() + ', ';
+
+        }
         variablesValues = tempDictionaryVariablesValues;
     }else {
         let i;
         for (i = 0; i < parsedCode.length; i++) {
             parsedCodeToflowChart(parsedCode.body[i]);
-        }}}
+            allNodes[currentNode].IfAttachmentPointer = (currIfAttachment).toString() + ', ';
+
+        }}
+
+}
+
+function parseReturnStatement (parsedCode) {
+    if (currentNode > 0)
+        allNodes[currentNode].pointers += (currentNode + 1).toString() + ', ';
+    currentNode++;
+    allNodes[currentNode] = {};
+    allNodes[currentNode].id = currentNode;
+    allNodes[currentNode].value = '';
+    allNodes[currentNode].pointers = '';
+    allNodes[currentNode].color = 'green';
+    let returnLine = '';
+    let arg = parsedCodeToflowChart(parsedCode.argument);
+    returnLine += 'return ' + arg + ';';
+    allNodes[currentNode].value += returnLine;
+    let isInside = insideFalseIf();
+    if (isInside) {
+        allNodes[currentNode].color = 'red';
+    } else {
+        allNodes[currentNode].color = 'green';
+    }
+}
+
 
 
 function calcStringToNumbersString(condition) {
