@@ -110,23 +110,52 @@ function parseFunctionVariableDeclaration (parsedCode){
 }
 
 function parseBlockStatement(parsedCode) {
-    if (currentNode>0){
-        allNodes[currentNode].pointers += (currentNode + 1).toString() + ', ';
-    }
-    currentNode++;
-    allNodes[currentNode] = {};
-    allNodes[currentNode].id = currentNode;
-    allNodes[currentNode].value = '';
-    allNodes[currentNode].pointers = '';
-    let isInside = insideFalseIf();
-    if (isInside) {
-        allNodes[currentNode].color = 'red';
-    } else {
-        allNodes[currentNode].color = 'green';
-    }
+    let counter=0;
     let i;
     for (i = 0; i < parsedCode.length; i++) {
-        parsedCodeToflowChart(parsedCode[i]);
+        if (parsedCode[i].type=='IfStatement'){
+
+            if (currentNode>0){
+                allNodes[currentNode].pointers += (currentNode + 1).toString() + ', ';
+            }
+            currentNode++;
+            allNodes[currentNode] = {};
+            allNodes[currentNode].id = currentNode;
+            allNodes[currentNode].value = '';
+            allNodes[currentNode].pointers = '';
+            let isInside = insideFalseIf();
+            if (isInside) {
+                allNodes[currentNode].color = 'red';
+            } else {
+                allNodes[currentNode].color = 'green';
+            }
+            parsedCodeToflowChart(parsedCode[i]);
+            counter=0;
+        }
+        else{
+            if (counter==0){
+                if (currentNode>0){
+                    allNodes[currentNode].pointers += (currentNode + 1).toString() + ', ';
+                }
+                currentNode++;
+                allNodes[currentNode] = {};
+                allNodes[currentNode].id = currentNode;
+                allNodes[currentNode].value = '';
+                allNodes[currentNode].pointers = '';
+                let isInside = insideFalseIf();
+                if (isInside) {
+                    allNodes[currentNode].color = 'red';
+                } else {
+                    allNodes[currentNode].color = 'green';
+                }
+                parsedCodeToflowChart(parsedCode[i]);
+                counter++;
+            }
+            else{
+                parsedCodeToflowChart(parsedCode[i]);
+                counter++;
+            }
+        }
     }
 }
 
@@ -155,7 +184,7 @@ function parseAssignmentExpression(parsedCode){
     let row='';
     let left = parsedCode.left.name;
     let right = parsedCodeToflowChart(parsedCode.right);
-    row+=left + ' = ' + right + ';';
+    row+=left + ' = ' + right;
     allNodes[currentNode].value += row;
     if (!insideFalseIf()) {
         variablesValues.set(parsedCode.left.name, eval(calcStringToNumbersString((parsedCode.right))));
@@ -277,8 +306,12 @@ function parseIfStatement(parsedCode,isElseIf) {
 
 function insideFalseIf(){
     for (let i=nextIf; i>0; i--){
-        if (ifsInformation[i].lock && !ifsInformation[i].isConditionTrue &&  ifsInformation[nextIf].nodeID != currentNode){
-            return true;
+        if (ifsInformation[i].lock){
+            if (!ifsInformation[i].isConditionTrue){
+                if (ifsInformation[i].nodeID != currentNode) {
+                    return true;
+                }
+            }
         }
     }
     return false;
