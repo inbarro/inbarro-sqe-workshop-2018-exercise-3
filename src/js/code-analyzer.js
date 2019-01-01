@@ -113,21 +113,10 @@ function parseBlockStatement(parsedCode) {
     let counter=0;
     let i;
     for (i = 0; i < parsedCode.length; i++) {
-        if (parsedCode[i].type=='IfStatement'){
+        if (parsedCode[i].type==='IfStatement'){
 
             if (currentNode>0){
                 allNodes[currentNode].pointers += (currentNode + 1).toString() + ', ';
-            }
-            currentNode++;
-            allNodes[currentNode] = {};
-            allNodes[currentNode].id = currentNode;
-            allNodes[currentNode].value = '';
-            allNodes[currentNode].pointers = '';
-            let isInside = insideFalseIf();
-            if (isInside) {
-                allNodes[currentNode].color = 'red';
-            } else {
-                allNodes[currentNode].color = 'green';
             }
             parsedCodeToflowChart(parsedCode[i]);
             counter=0;
@@ -354,24 +343,10 @@ function parseElseStatement(parsedCode,conditionRealResult,ifNodeNumber,currIfAt
 }
 
 function parseReturnStatement (parsedCode) {
-    if (currentNode > 0)
-        allNodes[currentNode].pointers += (currentNode + 1).toString() + ', ';
-    currentNode++;
-    allNodes[currentNode] = {};
-    allNodes[currentNode].id = currentNode;
-    allNodes[currentNode].value = '';
-    allNodes[currentNode].pointers = '';
-    allNodes[currentNode].color = 'green';
     let returnLine = '';
     let arg = parsedCodeToflowChart(parsedCode.argument);
     returnLine += 'return ' + arg + ';';
     allNodes[currentNode].value += returnLine;
-    let isInside = insideFalseIf();
-    if (isInside) {
-        allNodes[currentNode].color = 'red';
-    } else {
-        allNodes[currentNode].color = 'green';
-    }
 }
 
 
