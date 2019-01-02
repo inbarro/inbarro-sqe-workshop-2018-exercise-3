@@ -114,10 +114,10 @@ function parseBlockStatement(parsedCode) {
     let i;
     for (i = 0; i < parsedCode.length; i++) {
         if (parsedCode[i].type==='IfStatement'){
+            currentNode++;
+            allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green'; allNodes[currentNode].pointers = '';
 
-            if (currentNode>0){
-                allNodes[currentNode].pointers += (currentNode + 1).toString() + ', ';
-            }
+
             parsedCodeToflowChart(parsedCode[i]);
             counter=0;
         }
@@ -153,7 +153,7 @@ function parseVariableDeclaration(parsedCode){
     let i;
     for (i = 0; i < parsedCode.length; i++) {
         let name = parsedCode[i].id.name;
-        let row = name+ '= ';
+        let row = name+ ' = ';
         if (parsedCode[i].init != null) {
             row += parsedCodeToflowChart(parsedCode[i].init) + '; ';
         } else {
@@ -211,12 +211,17 @@ function parseBinaryExpression(parsedCode){
 
 function parseIfStatement(parsedCode,isElseIf) {
     let conditionRealResult;
-    if(!isElseIf)
-        allNodes[currentNode].pointers += (currentNode + 1).toString() + ', ';
-    else
+    if(!isElseIf) {
+        if (currentNode>0){
+            allNodes[currentNode].pointers += (currentNode + 1).toString() + ', ';
+        }
+    }
+    else {
+        currentNode++;
+        allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green'; allNodes[currentNode].pointers = '';
         allNodes[IfAttachments[nextIfAttachment].nodeID].pointers += (currentNode + 1).toString() + ', ';
-    currentNode++;
-    allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green'; allNodes[currentNode].pointers = '';
+    }
+
     let left = parsedCodeToflowChart(parsedCode.test.left); let right = parsedCodeToflowChart(parsedCode.test.right); let op = parsedCode.test.operator;
     allNodes[currentNode].value +=  left + ' ' + op + ' ' + right;
     let condition = calcStringToNumbersString(parsedCode.test);     conditionRealResult = eval(condition);
