@@ -8,6 +8,8 @@ let ifsInformation;
 let nextIf;
 let nextIfAttachment;
 let IfAttachments;
+let ifStack;
+
 
 
 const parseCode = (codeToParse) => {
@@ -18,6 +20,7 @@ export {parseCode};
 function parsedCodeToflowChartWrap(args,parsedCode){
     variablesValues = new Map();
     allNodes = [];
+    ifStack=[];
     ifsInformation = [];
     IfAttachments=[];
     nextIf=0;
@@ -118,6 +121,7 @@ function parseBlockStatement(parsedCode) {
             allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green'; allNodes[currentNode].pointers = '';
             allNodes[currentNode].type = 'condition';
 
+
             parsedCodeToflowChart(parsedCode[i]);
             counter=0;
         }
@@ -133,6 +137,10 @@ function parseBlockStatement(parsedCode) {
                 allNodes[currentNode].pointers = '';
                 allNodes[currentNode].type = 'square';
 
+
+                let nodeID= top(ifStack);
+                if (nodeID != undefined)
+                    allNodes[nodeID].pointerTrue=currentNode;
                 let isInside = insideFalseIf();
                 if (isInside) {
                     allNodes[currentNode].color = 'red';
@@ -213,7 +221,7 @@ function parseBinaryExpression(parsedCode){
 
 function parseIfStatement(parsedCode,isElseIf) {
     let conditionRealResult;
-    if(!isElseIf) {
+    if(isElseIf==0) {
         if (currentNode>0){
             allNodes[currentNode].pointerTrue += (currentNode + 1).toString() + ', ';
         }
@@ -222,8 +230,9 @@ function parseIfStatement(parsedCode,isElseIf) {
         currentNode++;
         allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green'; allNodes[currentNode].pointers = '';
         allNodes[currentNode].type = 'condition';
-
         allNodes[IfAttachments[nextIfAttachment].nodeID].pointers += (currentNode + 1).toString() + ', ';
+        ifStack.push(allNodes[currentNode].id);
+
     }
 
     let left = parsedCodeToflowChart(parsedCode.test.left); let right = parsedCodeToflowChart(parsedCode.test.right); let op = parsedCode.test.operator;
@@ -251,7 +260,10 @@ function parseIfStatement(parsedCode,isElseIf) {
         allNodes[currentNode].color = 'red';
         let tempDictionaryVariablesValues = new Map(variablesValues);
         currIfAttachment  = nextIfAttachment;
+        ifStack.push(allNodes[currentNode].id);
         parsedCodeToflowChart(parsedCode.consequent);
+        ifStack.pop();
+
         allNodes[currentNode].IfAttachmentPointer = (currIfAttachment).toString() + ', ';
         variablesValues = tempDictionaryVariablesValues;
     }
@@ -259,11 +271,17 @@ function parseIfStatement(parsedCode,isElseIf) {
         if (!isElseIf){
             if (conditionRealResult) {
                 IfAttachments[nextIfAttachment].conditionState = true;
+                ifStack.push(allNodes[currentNode].id);
                 parsedCodeToflowChart(parsedCode.consequent);
+                ifStack.pop();
+
             } else {
                 let tempDictionaryVariablesValues = new Map(variablesValues);
                 currIfAttachment  = nextIfAttachment;
+                ifStack.push(allNodes[currentNode].id);
                 parsedCodeToflowChart(parsedCode.consequent);
+                ifStack.pop();
+
                 allNodes[currentNode].IfAttachmentPointer = (currIfAttachment).toString() + ', ';
                 variablesValues = tempDictionaryVariablesValues;
             }
@@ -272,7 +290,10 @@ function parseIfStatement(parsedCode,isElseIf) {
                 allNodes[currentNode].color = 'red';
                 let tempDictionaryVariablesValues = new Map(variablesValues);
                 currIfAttachment  = nextIfAttachment;
+                ifStack.push(allNodes[currentNode].id);
                 parsedCodeToflowChart(parsedCode.consequent);
+                ifStack.pop();
+
                 allNodes[currentNode].IfAttachmentPointer = (currIfAttachment).toString() + ', ';
                 variablesValues = tempDictionaryVariablesValues;
             }
@@ -280,12 +301,18 @@ function parseIfStatement(parsedCode,isElseIf) {
                 if (conditionRealResult) {
                     IfAttachments[nextIfAttachment].conditionState = true;
                     currIfAttachment  = nextIfAttachment;
+                    ifStack.push(allNodes[currentNode].id);
                     parsedCodeToflowChart(parsedCode.consequent);
+                    ifStack.pop();
+
                     allNodes[currentNode].IfAttachmentPointer = (currIfAttachment).toString() + ', ';                }
                 else{
                     let tempDictionaryVariablesValues = new Map(variablesValues);
                     currIfAttachment  = nextIfAttachment;
+                    ifStack.push(allNodes[currentNode].id);
                     parsedCodeToflowChart(parsedCode.consequent);
+                    ifStack.pop();
+
                     allNodes[currentNode].IfAttachmentPointer = (currIfAttachment).toString() + ', ';
                     variablesValues = tempDictionaryVariablesValues;
                 }
@@ -332,8 +359,8 @@ function parseElseStatement(parsedCode,conditionRealResult,ifNodeNumber,currIfAt
     allNodes[currentNode] = {};
     allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].pointers = ''; allNodes[currentNode].color = 'green';
     allNodes[currentNode].type = 'square';
-    let isInside = insideFalseIf();
-    if (isInside || IfAttachments[nextIfAttachment].conditionState) {
+    ifStack.push(allNodes[currentNode].id);
+    if (IfAttachments[nextIfAttachment].conditionState) {
         allNodes[currentNode].color = 'red';
         let tempDictionaryVariablesValues = new Map(variablesValues);
         let i;
@@ -388,6 +415,13 @@ function calcBinaryToVal(condition) {
     return ( left + op + right);
 
 }
+
+function top(stack){
+    if (stack != null)
+        return stack[stack.length-1];
+    return null;
+}
+
 
 function isNumber(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
