@@ -116,7 +116,7 @@ function parseBlockStatement(parsedCode) {
         if (parsedCode[i].type==='IfStatement'){
             currentNode++;
             allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green'; allNodes[currentNode].pointers = '';
-
+            allNodes[currentNode].type = 'condition';
 
             parsedCodeToflowChart(parsedCode[i]);
             counter=0;
@@ -131,6 +131,8 @@ function parseBlockStatement(parsedCode) {
                 allNodes[currentNode].id = currentNode;
                 allNodes[currentNode].value = '';
                 allNodes[currentNode].pointers = '';
+                allNodes[currentNode].type = 'square';
+
                 let isInside = insideFalseIf();
                 if (isInside) {
                     allNodes[currentNode].color = 'red';
@@ -213,12 +215,14 @@ function parseIfStatement(parsedCode,isElseIf) {
     let conditionRealResult;
     if(!isElseIf) {
         if (currentNode>0){
-            allNodes[currentNode].pointers += (currentNode + 1).toString() + ', ';
+            allNodes[currentNode].pointerTrue += (currentNode + 1).toString() + ', ';
         }
     }
     else {
         currentNode++;
         allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green'; allNodes[currentNode].pointers = '';
+        allNodes[currentNode].type = 'condition';
+
         allNodes[IfAttachments[nextIfAttachment].nodeID].pointers += (currentNode + 1).toString() + ', ';
     }
 
@@ -238,6 +242,7 @@ function parseIfStatement(parsedCode,isElseIf) {
         IfAttachments[nextIfAttachment].nodeID = currentNode;
         IfAttachments[nextIfAttachment].conditionState = false;
         IfAttachments[nextIfAttachment].lastIfNode=currentNode;
+
     }else{
         IfAttachments[nextIfAttachment].lastIfNode=currentNode;
     }
@@ -326,6 +331,7 @@ function parseElseStatement(parsedCode,conditionRealResult,ifNodeNumber,currIfAt
     currentNode++;
     allNodes[currentNode] = {};
     allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].pointers = ''; allNodes[currentNode].color = 'green';
+    allNodes[currentNode].type = 'square';
     let isInside = insideFalseIf();
     if (isInside || IfAttachments[nextIfAttachment].conditionState) {
         allNodes[currentNode].color = 'red';
