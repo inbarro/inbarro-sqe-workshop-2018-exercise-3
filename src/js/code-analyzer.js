@@ -129,8 +129,8 @@ function parseBlockStatement(parsedCode) {
                 currentNode++;
                 allNodes[currentNode] = {};allNodes[currentNode].id = currentNode;allNodes[currentNode].value = '';allNodes[currentNode].type = 'square';
 
-                if (noElse.length!== 0 && noElse.pop())
-                    allNodes[lastIf.pop()].pointerFalse = currentNode;
+                // if (noElse.length!== 0 && noElse.pop())
+                //     allNodes[lastIf.pop()].pointerFalse = currentNode;
                 if (ifStack.length !== 0 && allNodes[currentNode-1].type !== 'square')
                     allNodes[top(ifStack)].pointerTrue=currentNode;
                 parsedCodeToflowChart(parsedCode[i]);
@@ -224,6 +224,7 @@ function parseIfStatement(parsedCode,isElseIf) {
     }
     else{
         noElse.push(true);
+        lastIf.pop();
     }
 }
 
