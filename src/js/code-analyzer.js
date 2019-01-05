@@ -4,12 +4,11 @@ let funcArgs;
 let variablesValues;
 let allNodes;
 let currentNode;
-let nextIf;
-let nextIfAttachment;
 let IfAttachments;
 let ifStack;
 let ifIsInStack;
 let lastIf;
+let noElse;
 
 
 
@@ -24,12 +23,11 @@ function parsedCodeToflowChartWrap(args,parsedCode){
     ifStack=[];
     ifIsInStack=[];
     ifIsInStack.push(true);
-    lastIf = -1;
+    lastIf = [];
+    noElse = [];
 
     IfAttachments=[];
-    nextIf=0;
     currentNode=0;
-    nextIfAttachment=0;
     funcArgs = args.split('|');
 
     return parsedCodeToflowChart(parsedCode);
@@ -130,11 +128,11 @@ function parseBlockStatement(parsedCode) {
             if (counter===0){
                 currentNode++;
                 allNodes[currentNode] = {};allNodes[currentNode].id = currentNode;allNodes[currentNode].value = '';allNodes[currentNode].type = 'square';
-                if (lastIf !== -1)
-                    allNodes[lastIf].pointerTrue=currentNode;
-                // let nodeID= top(ifStack);
-                // if (nodeID != undefined)
-                //     allNodes[nodeID].pointerTrue=currentNode;
+
+                if (noElse.length!== 0 && noElse.pop())
+                    allNodes[lastIf.pop()].pointerFalse = currentNode;
+                if (ifStack.length !== 0 && allNodes[currentNode-1].type !== 'square')
+                    allNodes[top(ifStack)].pointerTrue=currentNode;
                 parsedCodeToflowChart(parsedCode[i]);
                 counter=1;
             }else{
@@ -204,20 +202,19 @@ function parseIfStatement(parsedCode,isElseIf) {
         currentNode++;
         allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green';
         allNodes[currentNode].type = 'condition';
-        allNodes[lastIf].pointerFalse = currentNode;
-        ifStack.push(allNodes[currentNode].id);
+        if (lastIf.length !== 0)
+            allNodes[lastIf.pop()].pointerFalse = currentNode;
     }
     let left = parsedCodeToflowChart(parsedCode.test.left); let right = parsedCodeToflowChart(parsedCode.test.right); let op = parsedCode.test.operator;
     allNodes[currentNode].value +=  left + ' ' + op + ' ' + right;
     let condition = calcStringToNumbersString(parsedCode.test);     let conditionRealResult = eval(condition);
 
     ifStack.push(allNodes[currentNode].id);
+    lastIf.push(allNodes[currentNode].id);
     ifIsInStack.push(top(ifIsInStack) && conditionRealResult);
-    lastIf=top(ifStack);
     parsedCodeToflowChart(parsedCode.consequent);
     ifIsInStack.pop();
     ifStack.pop();
-    lastIf=top(ifStack);
     if (parsedCode.alternate !== null) {
         if (parsedCode.alternate.type === 'IfStatement') {
             parseIfStatement(parsedCode.alternate, 1 );
@@ -225,14 +222,16 @@ function parseIfStatement(parsedCode,isElseIf) {
             parseElseStatement(parsedCode.alternate);
         }
     }
+    else{
+        noElse.push(true);
+    }
 }
 
 function parseElseStatement(parsedCode) {
-
     currentNode++;
+    allNodes[lastIf.pop()].pointerFalse = currentNode;
     allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = '';  allNodes[currentNode].color = 'green';
     allNodes[currentNode].type = 'square';
-    allNodes[lastIf].pointerFalse = currentNode;
     ifStack.push(allNodes[currentNode].id);
     let i;
     for (i = 0; i < parsedCode.body.length; i++) {
