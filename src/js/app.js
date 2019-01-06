@@ -10,7 +10,8 @@ $(document).ready(function () {
         console.log(parsedCode);
         $('#parsedCode').val(JSON.stringify(parsedCode, null, 2));
         let args =  $('#arguments').val();
-        let flowCart = parsedCodeToflowChartWrap(args,parsedCode);
+        let flowCarts = parsedCodeToflowChartWrap(args,parsedCode);
+
         /*
 
             } */}); });
