@@ -10,6 +10,9 @@ let lastIf;
 let noElse;
 let ifAttachments;
 let currentAttach;
+let ifStatus;
+let finalAttachmentsList;
+let  finalAttachmentsListCounter;
 
 
 
@@ -27,8 +30,10 @@ function parsedCodeToflowChartWrap(args,parsedCode){
     lastIf = [];
     noElse = [];
     ifAttachments=[];
+    ifStatus=[];
     currentAttach=-1;
-
+    finalAttachmentsList=[];
+    finalAttachmentsListCounter = 0;
     currentNode=0;
     funcArgs = args.split('|');
 
@@ -41,7 +46,7 @@ function parsedCodeToflowChart(parsedCode){
     case ('Program'):
         parseProgram(parsedCode);
         console.log(allNodes);
-        console.log(ifAttachments);
+        console.log(finalAttachmentsList);
         return allNodes;
     case ('FunctionDeclaration'):
         parseFunctionDeclaration(parsedCode);
@@ -124,12 +129,18 @@ function parseBlockStatement(parsedCode) {
                 allNodes[currentNode].pointerTrue = currentNode + 1;
             currentNode++;
             allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green';  allNodes[currentNode].type = 'condition'; allNodes[currentNode].pointerTrue = '';  allNodes[currentNode].pointerFalse = '';
+            if (!top(ifIsInStack)){
+                allNodes[currentNode].color = 'red';
+            }
             parsedCodeToflowChart(parsedCode[i]);
             counter=0;}
         else{
             if (counter===0){
                 currentNode++;
-                allNodes[currentNode] = {};allNodes[currentNode].id = currentNode;allNodes[currentNode].value = '';allNodes[currentNode].type = 'square';
+                allNodes[currentNode] = {};allNodes[currentNode].id = currentNode;allNodes[currentNode].value = '';allNodes[currentNode].type = 'square'; allNodes[currentNode].color = 'green';
+                if (!top(ifIsInStack)){
+                    allNodes[currentNode].color = 'red';
+                }
                 if (ifStack.length !== 0 && allNodes[currentNode-1].type !== 'square')
                     allNodes[top(ifStack)].pointerTrue=currentNode;
                 parsedCodeToflowChart(parsedCode[i]);
@@ -201,31 +212,58 @@ function parseBinaryExpression(parsedCode){
 }
 
 function parseIfStatement(parsedCode,isElseIf) {
+    let left = parsedCodeToflowChart(parsedCode.test.left); let right = parsedCodeToflowChart(parsedCode.test.right); let op = parsedCode.test.operator;
+    let condition = calcStringToNumbersString(parsedCode.test);     let conditionRealResult = eval(condition);
+
     if(isElseIf == 1){
         currentNode++;
-        allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green';
+        allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = '';
         allNodes[currentNode].type = 'condition';
+
+        if (top(ifIsInStack)){
+            if (!top(ifStatus)){
+                allNodes[currentNode].color = 'green';
+            }
+            else{
+                allNodes[currentNode].color = 'red';
+            }
+            ifStatus.push(ifStatus.pop() || conditionRealResult);
+        }
+        else{
+            allNodes[currentNode].color = 'red';
+        }
         if (lastIf.length !== 0)
             allNodes[lastIf.pop()].pointerFalse = currentNode;
     }
     else{
         currentAttach++;
         ifAttachments.push(currentAttach);
+        ifStatus.push(conditionRealResult);
+        allNodes[currentNode].color = 'green';
+        if (!top(ifIsInStack)){
+            allNodes[currentNode].color = 'red';
+        }
     }
-    let left = parsedCodeToflowChart(parsedCode.test.left); let right = parsedCodeToflowChart(parsedCode.test.right); let op = parsedCode.test.operator;
     allNodes[currentNode].value +=  left + ' ' + op + ' ' + right;
-    let condition = calcStringToNumbersString(parsedCode.test);     let conditionRealResult = eval(condition);
+
 
     ifStack.push(allNodes[currentNode].id);
     lastIf.push(allNodes[currentNode].id);
-    ifIsInStack.push(top(ifIsInStack) && conditionRealResult);
-    parsedCodeToflowChart(parsedCode.consequent);
-    ifIsInStack.pop();
+    ifIsInStack.push(top(ifIsInStack) && top(ifStatus));
+    if (ifStatus.length===0|| top(ifIsInStack))
+        parsedCodeToflowChart(parsedCode.consequent);
+    else{
+        let tempDictionary =new Map(variablesValues);
+        parsedCodeToflowChart(parsedCode.consequent);
+        variablesValues = tempDictionary;
+    }
+    let forElse = ifIsInStack.pop();
     ifStack.pop();
     if (parsedCode.alternate !== null) {
         if (parsedCode.alternate.type === 'IfStatement') {
             parseIfStatement(parsedCode.alternate, 1 );
         } else {
+            ifIsInStack.push(!forElse);
             parseElseStatement(parsedCode.alternate);
         }
     }
@@ -233,9 +271,37 @@ function parseIfStatement(parsedCode,isElseIf) {
         noElse.push(true);
         lastIf.pop();
     }
-    if (isElseIf === 0)
-        ifAttachments.pop();
-    // currentAttach--;
+
+    if (isElseIf === 0) {
+        let currIfAttachment = ifAttachments.pop();
+        let check = checkIfIsOnlyOnePointerToAttach(currIfAttachment);
+        if (check!== undefined && check!== null){
+            allNodes[check].pointerToAttachment=undefined;
+            allNodes[check].pointerTrue = currentNode+1;
+        }
+        else{
+            finalAttachmentsList[finalAttachmentsListCounter] = {};
+            finalAttachmentsList[finalAttachmentsListCounter].id = currIfAttachment;
+            finalAttachmentsList[finalAttachmentsListCounter].pointer = currentNode+1;
+            finalAttachmentsListCounter++;
+        }
+        ifStatus.pop();
+    }
+}
+
+function checkIfIsOnlyOnePointerToAttach(currIfAttachment) {
+    let nodeThatPoints;
+    let counter = 0;
+    for (let i = 0; i < currIfAttachment.length; i++) {
+        if (allNodes[i].pointerToAttachment !== undefined && allNodes[i].pointerToAttachment === currIfAttachment) {
+            nodeThatPoints = allNodes[i].id;
+            counter++;
+        }
+    }
+    if (counter === 1) {
+        return nodeThatPoints;
+    } else
+        return null;
 }
 
 function parseElseStatement(parsedCode) {
@@ -244,9 +310,21 @@ function parseElseStatement(parsedCode) {
     allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = '';  allNodes[currentNode].color = 'green';
     allNodes[currentNode].type = 'square';
     ifStack.push(allNodes[currentNode].id);
-    let i;
-    for (i = 0; i < parsedCode.body.length; i++) {
-        parsedCodeToflowChart(parsedCode.body[i]);
+
+
+    if (ifStatus.length===0|| !top(ifStatus))
+        for (let i = 0; i < parsedCode.body.length; i++) {
+            parsedCodeToflowChart(parsedCode.body[i]);
+        }    else{
+        allNodes[currentNode].color = 'red';
+        let tempDictionary =new Map(variablesValues);
+        for (let i = 0; i < parsedCode.body.length; i++) {
+            parsedCodeToflowChart(parsedCode.body[i]);
+        }
+        variablesValues = tempDictionary;
+    }
+    if (ifStack.length !==0 && ifAttachments.length>0) {
+        allNodes[currentNode].pointerToAttachment = ifAttachments[ifAttachments.length-1];
     }
 }
 
