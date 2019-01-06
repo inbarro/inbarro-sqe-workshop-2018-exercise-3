@@ -289,21 +289,6 @@ function parseIfStatement(parsedCode,isElseIf) {
     }
 }
 
-function checkIfIsOnlyOnePointerToAttach(currIfAttachment) {
-    let nodeThatPoints;
-    let counter = 0;
-    for (let i = 0; i < currIfAttachment.length; i++) {
-        if (allNodes[i].pointerToAttachment !== undefined && allNodes[i].pointerToAttachment === currIfAttachment) {
-            nodeThatPoints = allNodes[i].id;
-            counter++;
-        }
-    }
-    if (counter === 1) {
-        return nodeThatPoints;
-    } else
-        return null;
-}
-
 function parseElseStatement(parsedCode) {
     currentNode++;
     allNodes[lastIf.pop()].pointerFalse = currentNode;
@@ -326,6 +311,7 @@ function parseElseStatement(parsedCode) {
     if (ifStack.length !==0 && ifAttachments.length>0) {
         allNodes[currentNode].pointerToAttachment = ifAttachments[ifAttachments.length-1];
     }
+    ifIsInStack.pop();
 }
 
 function parseReturnStatement (parsedCode) {
@@ -333,6 +319,21 @@ function parseReturnStatement (parsedCode) {
     let arg = parsedCodeToflowChart(parsedCode.argument);
     returnLine += 'return ' + arg + ';';
     allNodes[currentNode].value += returnLine;
+}
+
+function checkIfIsOnlyOnePointerToAttach(currIfAttachment) {
+    let nodeThatPoints;
+    let counter = 0;
+    for (let i = 0; i < currIfAttachment.length; i++) {
+        if (allNodes[i].pointerToAttachment !== undefined && allNodes[i].pointerToAttachment === currIfAttachment) {
+            nodeThatPoints = allNodes[i].id;
+            counter++;
+        }
+    }
+    if (counter === 1) {
+        return nodeThatPoints;
+    } else
+        return null;
 }
 
 function calcStringToNumbersString(condition) {
@@ -368,11 +369,9 @@ function top(stack){
     return null;
 }
 
-
 function isNumber(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
 }
-
 
 // function parseWhileStatementPart2 (parsedCode){
 //     let left = parsedCodeToSymbolicSubstitution(parsedCode.test.left);
@@ -390,11 +389,5 @@ function isNumber(n) {
 //     newFunction.push({str: '}', color: ''});
 // }
 //
-// function parseReturnStatementPart2 (parsedCode) {
-//     let returnLine = '';
-//     let arg = parsedCodeToSymbolicSubstitution(parsedCode.argument);
-//     returnLine+='return ' + arg + ';';
-//     newFunction.push({str:returnLine, color:''});
-// }
 
 
