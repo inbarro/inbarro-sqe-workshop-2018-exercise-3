@@ -46,8 +46,8 @@ function parsedCodeToflowChart(parsedCode){
     switch (parsedCode.type) {
     case ('Program'):
         parseProgram(parsedCode);
-        //console.log(allNodes);
-        //console.log(finalAttachmentsList);
+        console.log(allNodes);
+        console.log(finalAttachmentsList);
         toReturn.allNodes = allNodes;
         toReturn.finalAttachmentsList = finalAttachmentsList;
         return toReturn;
@@ -85,9 +85,9 @@ function switchCaseContinue2 (parsedCode) {
         return parseIdentifier(parsedCode);
     case ('Literal'):
         return parseLiteral(parsedCode);
-    // case ('WhileStatement'):
-    //     parseWhileStatementPart2(parsedCode);
-    //     break;
+    case ('WhileStatement'):
+        parseWhileStatement(parsedCode);
+        break;
     default:
         return switchCaseContinue3(parsedCode);
     }
@@ -127,36 +127,46 @@ function parseFunctionVariableDeclaration (parsedCode){
 function parseBlockStatement(parsedCode) {
     counter=0;
     for (let i = 0; i < parsedCode.length; i++) {
-        if (parsedCode[i].type==='IfStatement'){
+        if (parsedCode[i].type==='IfStatement')
             parseBlockIf(parsedCode,i);
-        }
+        else if (parsedCode[i].type==='WhileStatement')
+            parseBlockWhile(parsedCode,i);
         else{parseBlockException(parsedCode,i);}}
+    parseBlockStatementContinue();
+}
+
+function parseBlockStatementContinue(){
     if (ifStack.length !==0 && ifAttachments.length>0) {
         allNodes[currentNode].pointerToAttachment = ifAttachments[ifAttachments.length-1];
     }
+}
+
+function parseBlockWhile(parsedCode,i){
+    if (currentNode>0)
+        allNodes[currentNode].pointerTrue = currentNode + 1;
+    currentNode++;
+    allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green';  allNodes[currentNode].type = 'condition'; allNodes[currentNode].pointerTrue = '';
+    parsedCodeToflowChart(parsedCode[i]);
+    counter=0;
 }
 
 function parseBlockIf(parsedCode,i){
     if (currentNode>0)
         allNodes[currentNode].pointerTrue = currentNode + 1;
     currentNode++;
-    allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green';  allNodes[currentNode].type = 'condition'; allNodes[currentNode].pointerTrue = '';  allNodes[currentNode].pointerFalse = '';
-    if (!top(ifIsInStack)){
-        allNodes[currentNode].color = 'red';
-    }
+    allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = ''; allNodes[currentNode].color = 'green';  allNodes[currentNode].type = 'condition'; allNodes[currentNode].pointerTrue = '';
     parsedCodeToflowChart(parsedCode[i]);
     counter=0;
 }
 
 function parseBlockException(parsedCode,i){
-
     if (counter===0){
         currentNode++;
-        allNodes[currentNode] = {};allNodes[currentNode].id = currentNode;allNodes[currentNode].value = '';allNodes[currentNode].type = 'square'; allNodes[currentNode].color = 'green';
+        allNodes[currentNode] = {};allNodes[currentNode].id = currentNode;allNodes[currentNode].value = '';allNodes[currentNode].type = 'operation'; allNodes[currentNode].color = 'green';
         if (!top(ifIsInStack)){
             allNodes[currentNode].color = 'red';
         }
-        if (ifStack.length !== 0 && allNodes[currentNode-1].type !== 'square')
+        if (ifStack.length !== 0 && allNodes[currentNode-1].type !== 'operation')
             allNodes[top(ifStack)].pointerTrue=currentNode;
         parsedCodeToflowChart(parsedCode[i]);
         counter=1;
@@ -170,7 +180,7 @@ function parseVariableDeclaration(parsedCode){
         let name = parsedCode[i].id.name;
         let row = 'let ' +name;
         if (parsedCode[i].init != null) {
-            row +=' = '+ parsedCodeToflowChart(parsedCode[i].init) + '; ';
+            row +=' = '+ parsedCodeToflowChart(parsedCode[i].init) + ' ';
         } else {
             row += '; ';
         }
@@ -245,6 +255,7 @@ function colorIfElseNode(){
     if (!top(ifStatus)){ allNodes[currentNode].color = 'green'; }
     else{ allNodes[currentNode].color = 'red'; }
 }
+
 function parseIfStatementPartTwo(parsedCode,isElseIf) {
     ifStack.push(allNodes[currentNode].id);
     lastIf.push(allNodes[currentNode].id);
@@ -284,7 +295,7 @@ function parseElseStatement(parsedCode) {
     currentNode++;
     allNodes[lastIf.pop()].pointerFalse = currentNode;
     allNodes[currentNode] = {}; allNodes[currentNode].id = currentNode; allNodes[currentNode].value = '';  allNodes[currentNode].color = 'green';
-    allNodes[currentNode].type = 'square';
+    allNodes[currentNode].type = 'operation';
     ifStack.push(allNodes[currentNode].id);
     if (ifStatus.length===0|| !top(ifStatus))
         for (let i = 0; i < parsedCode.body.length; i++) {
@@ -360,21 +371,22 @@ function isNumber(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
-// function parseWhileStatementPart2 (parsedCode){
-//     let left = parsedCodeToSymbolicSubstitution(parsedCode.test.left);
-//     let right = parsedCodeToSymbolicSubstitution(parsedCode.test.right);
-//     let operator = parsedCode.test.operator;
-//     let whileLine = 'while ( ' + left + ' ' + operator + ' ' + right + ') {';
-//     let conditionRealResult = eval(calcStringToNumbersString(parsedCode.test));
-//     if (conditionRealResult) {
-//         newFunction.push({str: whileLine, color: 'green'});}
-//     else{
-//         //isNotTrue=true;
-//         newFunction.push({str: whileLine, color: 'red'});}
-//     parsedCodeToSymbolicSubstitution(parsedCode.body);
-//     //isNotTrue=false;
-//     newFunction.push({str: '}', color: ''});
-// }
-//
+function parseWhileStatement (parsedCode){
+    let left = parsedCodeToflowChart(parsedCode.test.left); let right = parsedCodeToflowChart(parsedCode.test.right); let op = parsedCode.test.operator;
+    let condition = calcStringToNumbersString(parsedCode.test);    let conditionRealResult = eval(condition);
+    allNodes[currentNode].value ='while ' + left + ' ' + op + ' ' + right ;
+    if (ifIsInStack.length !==0 && !top(ifIsInStack))
+        allNodes[currentNode].color = 'red';
+    ifIsInStack.push((ifIsInStack.length ===1 || top(ifIsInStack)) && conditionRealResult);
+    if (top(ifIsInStack))
+        parsedCodeToflowChart(parsedCode.body);
+    else {
+        let tempDictionary = new Map(variablesValues);
+        parsedCodeToflowChart(parsedCode.body);
+        variablesValues = tempDictionary;
+    }
+}
+
+
 
 

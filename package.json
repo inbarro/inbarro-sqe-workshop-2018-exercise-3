@@ -7,9 +7,9 @@
         "start": "npm run start:dev",
         "start:dev": "webpack --watch",
         "test:watch": "mocha-webpack --watch",
-        "test": "mocha-webpack --webpack-config webpack.test.config.js",
-        "coverage": "cross-env NODE_ENV=coverage nyc --all  --reporter=html npm run test",
-        "lint": "eslint -f html -o ./lint/eslint-report.html src"
+        "test": "mocha-webpack --webpack-config webpack.test.config.js --reporter=json",
+        "coverage": "cross-env NODE_ENV=coverage nyc --reporter=json-summary npm run test",
+        "lint": "eslint -f json -o ./lint/eslint-report.json src"
     },
     "nyc": {
         "include": [
@@ -22,9 +22,7 @@
     "license": "ISC",
     "dependencies": {
         "esprima": "^4.0.0",
-        "flowchart": "^1.2.0",
-        "jquery": "^3.3.1",
-        "styx": "0.0.8"
+        "jquery": "^3.3.1"
     },
     "devDependencies": {
         "cross-env": "^5.2.0",
